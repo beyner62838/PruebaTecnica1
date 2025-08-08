@@ -26,7 +26,7 @@
 ### POST /api/clientes: Crear un nuevo cliente
 ### PUT /api/clientes/{id}: Actualizar un cliente existente
 ### DELETE /api/clientes/{id}: Eliminar un cliente
-##Cuentas
+## Cuentas
 ### GET /api/cuentas: Obtener todas las cuentas
 ### GET /api/cuentas/{id}: Obtener una cuenta por ID
 ### POST /api/cuentas: Crear una nueva cuenta
