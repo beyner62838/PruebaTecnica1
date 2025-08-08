@@ -19,26 +19,26 @@
 
 ### http://localhost:8080 
 
-Endpoints principales
-Clientes
-GET /api/clientes: Obtener todos los clientes
-GET /api/clientes/{id}: Obtener un cliente por ID
-POST /api/clientes: Crear un nuevo cliente
-PUT /api/clientes/{id}: Actualizar un cliente existente
-DELETE /api/clientes/{id}: Eliminar un cliente
-Cuentas
-GET /api/cuentas: Obtener todas las cuentas
-GET /api/cuentas/{id}: Obtener una cuenta por ID
-POST /api/cuentas: Crear una nueva cuenta
-PUT /api/cuentas/{id}: Actualizar una cuenta existente
-DELETE /api/cuentas/{id}: Eliminar una cuenta
-Transacciones
-POST /api/transacciones/consignacion: Realizar una consignación
-POST /api/transacciones/retiro: Realizar un retiro
-POST /api/transacciones/transferencia: Realizar una transferencia
-GET /api/transacciones: Obtener todas las transacciones
-GET /api/transacciones/{id}: Obtener una transacción por ID
-Notas importantes
+### Endpoints principales
+## Clientes
+### GET /api/clientes: Obtener todos los clientes
+### GET /api/clientes/{id}: Obtener un cliente por ID
+### POST /api/clientes: Crear un nuevo cliente
+### PUT /api/clientes/{id}: Actualizar un cliente existente
+### DELETE /api/clientes/{id}: Eliminar un cliente
+##Cuentas
+### GET /api/cuentas: Obtener todas las cuentas
+### GET /api/cuentas/{id}: Obtener una cuenta por ID
+### POST /api/cuentas: Crear una nueva cuenta
+### PUT /api/cuentas/{id}: Actualizar una cuenta existente
+### DELETE /api/cuentas/{id}: Eliminar una cuenta
+## Transacciones
+### POST /api/transacciones/consignacion: Realizar una consignación
+### POST /api/transacciones/retiro: Realizar un retiro
+### POST /api/transacciones/transferencia: Realizar una transferencia
+### GET /api/transacciones: Obtener todas las transacciones
+### GET /api/transacciones/{id}: Obtener una transacción por ID
+## Notas importantes
 Todos los endpoints requieren que los datos se envíen en formato JSON
 Las operaciones monetarias utilizan BigDecimal para precisión en los cálculos
 Los clientes deben ser mayores de edad para registrarse
