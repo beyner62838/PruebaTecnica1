@@ -12,13 +12,12 @@
 ### cd PruebaTecnica1
 ### Configura la base de datos PostgreSQL en application.properties
 
-Compila el proyecto:
+### Compila el proyecto:
 mvn clean install
 mvn spring-boot:run
-Acceso a la documentación Swagger
 Una vez que la aplicación esté en ejecución, puedes acceder a la documentación de la API en:
 
-### http://localhost:8080
+### http://localhost:8080 
 
 Endpoints principales
 Clientes
