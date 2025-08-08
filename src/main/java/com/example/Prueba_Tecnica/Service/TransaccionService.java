@@ -6,258 +6,108 @@ import com.example.Prueba_Tecnica.Entity.Transaccion;
 import com.example.Prueba_Tecnica.IService.ITransaccionService;
 import com.example.Prueba_Tecnica.Repository.CuentaRepository;
 import com.example.Prueba_Tecnica.Repository.TransaccionRepository;
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.repository.query.FluentQuery;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
 @Service
-@RequiredArgsConstructor
+@Transactional
 public class TransaccionService implements ITransaccionService {
 
-    private final CuentaRepository cuentaRepository;
-    private final TransaccionRepository transaccionRepository;
+    @Autowired
+    private TransaccionRepository transaccionRepository;
 
-    @Transactional
+    @Autowired
+    private CuentaRepository cuentaRepository;
+
+    @Override
     public void consignacion(ClienteDTO clienteDTO) {
-        Optional<Cuenta> cuentaOpt = cuentaRepository.findById(clienteDTO.getCuentaId());
-        if (cuentaOpt.isPresent()) {
-            Cuenta cuenta = cuentaOpt.get();
-            BigDecimal valor = BigDecimal.valueOf(clienteDTO.getMonto());
-            cuenta.setSaldo(cuenta.getSaldo().add(valor));
-            cuentaRepository.save(cuenta);
+        Cuenta cuenta = cuentaRepository.findById(clienteDTO.getCuentaId())
+                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
 
-            Transaccion transaccion = Transaccion.builder()
-                    .tipoTransaccion(Transaccion.TipoTransaccion.CONSIGNACION)
-                    .valor(valor)
-                    .cuentaDestino(cuenta)
-                    .descripcion("Consignación realizada")
-                    .build();
+        BigDecimal nuevoSaldo = cuenta.getSaldo().add(clienteDTO.getMonto());
+        cuenta.setSaldo(nuevoSaldo);
+        
+        Transaccion transaccion = Transaccion.builder()
+                .cuentaOrigen(cuenta)
+                .tipoTransaccion(Transaccion.TipoTransaccion.CONSIGNACION)
+                .valor(clienteDTO.getMonto())
+                .fecha(LocalDateTime.now())
+                .descripcion("Consignación")
+                .build();
 
-            transaccionRepository.save(transaccion);
-        } else {
-            throw new RuntimeException("Cuenta no encontrada");
-        }
+        transaccionRepository.save(transaccion);
+        cuentaRepository.save(cuenta);
     }
 
-    @Transactional
+    @Override
     public void retiro(ClienteDTO clienteDTO) {
-        Optional<Cuenta> cuentaOpt = cuentaRepository.findById(clienteDTO.getCuentaId());
-        if (cuentaOpt.isPresent()) {
-            Cuenta cuenta = cuentaOpt.get();
-            BigDecimal valor = BigDecimal.valueOf(clienteDTO.getMonto());
+        Cuenta cuenta = cuentaRepository.findById(clienteDTO.getCuentaId())
+                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
 
-            if (cuenta.getSaldo().compareTo(valor) >= 0) {
-                cuenta.setSaldo(cuenta.getSaldo().subtract(valor));
-                cuentaRepository.save(cuenta);
-
-                Transaccion transaccion = Transaccion.builder()
-                        .tipoTransaccion(Transaccion.TipoTransaccion.RETIRO)
-                        .valor(valor)
-                        .cuentaOrigen(cuenta)
-                        .descripcion("Retiro realizado")
-                        .build();
-
-                transaccionRepository.save(transaccion);
-            } else {
-                throw new RuntimeException("Saldo insuficiente");
-            }
-        } else {
-            throw new RuntimeException("Cuenta no encontrada");
+        if (cuenta.getSaldo().compareTo(clienteDTO.getMonto()) < 0) {
+            throw new RuntimeException("Saldo insuficiente");
         }
+
+        BigDecimal nuevoSaldo = cuenta.getSaldo().subtract(clienteDTO.getMonto());
+        cuenta.setSaldo(nuevoSaldo);
+
+        Transaccion transaccion = Transaccion.builder()
+                .cuentaOrigen(cuenta)
+                .tipoTransaccion(Transaccion.TipoTransaccion.RETIRO)
+                .valor(clienteDTO.getMonto())
+                .fecha(LocalDateTime.now())
+                .descripcion("Retiro")
+                .build();
+
+        transaccionRepository.save(transaccion);
+        cuentaRepository.save(cuenta);
     }
 
-    @Transactional
+    @Override
     public void transferencia(ClienteDTO clienteDTO) {
-        Optional<Cuenta> cuentaOrigenOpt = cuentaRepository.findById(clienteDTO.getCuentaOrigenId());
-        Optional<Cuenta> cuentaDestinoOpt = cuentaRepository.findById(clienteDTO.getCuentaDestinoId());
+        Cuenta cuentaOrigen = cuentaRepository.findById(clienteDTO.getCuentaId())
+                .orElseThrow(() -> new RuntimeException("Cuenta origen no encontrada"));
 
-        if (cuentaOrigenOpt.isPresent() && cuentaDestinoOpt.isPresent()) {
-            Cuenta cuentaOrigen = cuentaOrigenOpt.get();
-            Cuenta cuentaDestino = cuentaDestinoOpt.get();
-            BigDecimal valor = BigDecimal.valueOf(clienteDTO.getMonto());
+        Cuenta cuentaDestino = cuentaRepository.findById(clienteDTO.getCuentaDestinoId())
+                .orElseThrow(() -> new RuntimeException("Cuenta destino no encontrada"));
 
-            if (cuentaOrigen.getSaldo().compareTo(valor) >= 0) {
-                cuentaOrigen.setSaldo(cuentaOrigen.getSaldo().subtract(valor));
-                cuentaDestino.setSaldo(cuentaDestino.getSaldo().add(valor));
-
-                cuentaRepository.save(cuentaOrigen);
-                cuentaRepository.save(cuentaDestino);
-
-                Transaccion transaccion = Transaccion.builder()
-                        .tipoTransaccion(Transaccion.TipoTransaccion.TRANSFERENCIA)
-                        .valor(valor)
-                        .cuentaOrigen(cuentaOrigen)
-                        .cuentaDestino(cuentaDestino)
-                        .descripcion("Transferencia realizada")
-                        .build();
-
-                transaccionRepository.save(transaccion);
-            } else {
-                throw new RuntimeException("Saldo insuficiente en la cuenta origen");
-            }
-        } else {
-            throw new RuntimeException("Cuenta origen o destino no encontrada");
+        if (cuentaOrigen.getSaldo().compareTo(clienteDTO.getMonto()) < 0) {
+            throw new RuntimeException("Saldo insuficiente para la transferencia");
         }
+
+        BigDecimal nuevoSaldoOrigen = cuentaOrigen.getSaldo().subtract(clienteDTO.getMonto());
+        cuentaOrigen.setSaldo(nuevoSaldoOrigen);
+
+        BigDecimal nuevoSaldoDestino = cuentaDestino.getSaldo().add(clienteDTO.getMonto());
+        cuentaDestino.setSaldo(nuevoSaldoDestino);
+
+        Transaccion transaccion = Transaccion.builder()
+                .cuentaOrigen(cuentaOrigen)
+                .cuentaDestino(cuentaDestino)
+                .tipoTransaccion(Transaccion.TipoTransaccion.TRANSFERENCIA)
+                .valor(clienteDTO.getMonto())
+                .fecha(LocalDateTime.now())
+                .descripcion("Transferencia entre cuentas")
+                .build();
+
+        transaccionRepository.save(transaccion);
+        cuentaRepository.save(cuentaOrigen);
+        cuentaRepository.save(cuentaDestino);
     }
 
     @Override
-    public void flush() {
-
+    public List<Transaccion> obtenerTransacciones() {
+        return transaccionRepository.findAll();
     }
 
     @Override
-    public <S extends Transaccion> S saveAndFlush(S entity) {
-        return null;
-    }
-
-    @Override
-    public <S extends Transaccion> List<S> saveAllAndFlush(Iterable<S> entities) {
-        return List.of();
-    }
-
-    @Override
-    public void deleteAllInBatch(Iterable<Transaccion> entities) {
-
-    }
-
-    @Override
-    public void deleteAllByIdInBatch(Iterable<Long> longs) {
-
-    }
-
-    @Override
-    public void deleteAllInBatch() {
-
-    }
-
-    @Override
-    public Transaccion getOne(Long aLong) {
-        return null;
-    }
-
-    @Override
-    public Transaccion getById(Long aLong) {
-        return null;
-    }
-
-    @Override
-    public Transaccion getReferenceById(Long aLong) {
-        return null;
-    }
-
-    @Override
-    public <S extends Transaccion> Optional<S> findOne(Example<S> example) {
-        return Optional.empty();
-    }
-
-    @Override
-    public <S extends Transaccion> List<S> findAll(Example<S> example) {
-        return List.of();
-    }
-
-    @Override
-    public <S extends Transaccion> List<S> findAll(Example<S> example, Sort sort) {
-        return List.of();
-    }
-
-    @Override
-    public <S extends Transaccion> Page<S> findAll(Example<S> example, Pageable pageable) {
-        return null;
-    }
-
-    @Override
-    public <S extends Transaccion> long count(Example<S> example) {
-        return 0;
-    }
-
-    @Override
-    public <S extends Transaccion> boolean exists(Example<S> example) {
-        return false;
-    }
-
-    @Override
-    public <S extends Transaccion, R> R findBy(Example<S> example, Function<FluentQuery.FetchableFluentQuery<S>, R> queryFunction) {
-        return null;
-    }
-
-    @Override
-    public <S extends Transaccion> S save(S entity) {
-        return null;
-    }
-
-    @Override
-    public <S extends Transaccion> List<S> saveAll(Iterable<S> entities) {
-        return List.of();
-    }
-
-    @Override
-    public Optional<Transaccion> findById(Long aLong) {
-        return Optional.empty();
-    }
-
-    @Override
-    public boolean existsById(Long aLong) {
-        return false;
-    }
-
-    @Override
-    public List<Transaccion> findAll() {
-        return List.of();
-    }
-
-    @Override
-    public List<Transaccion> findAllById(Iterable<Long> longs) {
-        return List.of();
-    }
-
-    @Override
-    public long count() {
-        return 0;
-    }
-
-    @Override
-    public void deleteById(Long aLong) {
-
-    }
-
-    @Override
-    public void delete(Transaccion entity) {
-
-    }
-
-    @Override
-    public void deleteAllById(Iterable<? extends Long> longs) {
-
-    }
-
-    @Override
-    public void deleteAll(Iterable<? extends Transaccion> entities) {
-
-    }
-
-    @Override
-    public void deleteAll() {
-
-    }
-
-    @Override
-    public List<Transaccion> findAll(Sort sort) {
-        return List.of();
-    }
-
-    @Override
-    public Page<Transaccion> findAll(Pageable pageable) {
-        return null;
+    public Transaccion obtenerTransaccionPorId(Long id) {
+        return transaccionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transacción no encontrada"));
     }
 }
