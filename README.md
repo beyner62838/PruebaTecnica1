@@ -11,7 +11,7 @@
 ### git clone https://github.com/beyner62838/PruebaTecnica1.git
 ### cd PruebaTecnica1
 ### Configura la base de datos PostgreSQL en application.properties
-### Es importante Crear la abse de Datos en pgAdmin 
+### Es importante Crear la base de Datos en pgAdmin 
 ### Compila el proyecto:
 ## mvn clean install
 ## mvn spring-boot:run
